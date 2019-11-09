@@ -1,0 +1,22 @@
+# depslib dependency file v1.0
+1572193211 source:c:\users\valdecir\onedrive\documentos\space invaders\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<conio.h>
+	<windows.h>
+	<time.h>
+
+1572997033 source:d:\space invaders\main.cpp
+	<stdio.h>
+	<stdlib.h>
+	<conio.h>
+	<windows.h>
+	<time.h>
+	<future>
+	<iostream>
+	<thread>
+	<chrono>
+	<string>
+	<random>
+	<ctime>
+
