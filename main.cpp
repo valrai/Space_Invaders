@@ -17,14 +17,14 @@ const int FrameCol = 120, FrameLin = 37, EnemiesCol = 6, EnemiesLin = 3, AmntEne
 /*int Player.Col = 55, Player.Shot.Col = Player.Col + 4, Player.Shot.Lin = 0;
 int EnemyCol[EnemiesCol] = {19, 33, 47, 61, 75, 89}, EnemyLin[EnemiesLin] = {3, 7, 11}, DeadEnemies[DeadIndex] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, EnemyShot[AmntEnemiesShot][2];*/
 
-typedef struct
+typedef struct // criando struct que representará as naves
 {
   int Col;
   int Lin;
   bool Is_Alive = true;
   bool Is_Shoting;
 
-  struct Player_Shot
+  struct Shot
   {
     int Col;
     int Lin;
@@ -32,13 +32,14 @@ typedef struct
 
 }SpaceShip;
 
-SpaceShip Player;
-SpaceShip Enemies[AmntEnemies];
-std::mt19937 generator;
+SpaceShip Player; // criando a nave do jogador
+SpaceShip Enemies[AmntEnemies]; // criando um array de naves inimigas
+std::mt19937 generator; //instanciando gerador de números aleatórios
+bool StageisCompleted; // indica se o jogador já derrotou todos os inimigos
 
 void setcursor(int x, int y);
 void PrintFrame();
-char GetKey();
+unsigned char GetKey();
 void EnemyExplosion(int i);
 void Main_Stream(int Enemy);
 void Clean_Enemy();
@@ -47,6 +48,7 @@ void Clear_Player_Spaceship();
 void Player_Shot();
 void Player_Movimentation(char Key);
 void DefeatAnimation();
+void VictoryAnimation();
 
 // ===================================== Set Cursor Position ==========================================
 
@@ -86,9 +88,9 @@ void PrintFrame() // Imprime a borda
 
 // ================================== Get Key ========================================================
 
-char GetKey() // retorna o próximo caractere digitado.
+unsigned char GetKey() // retorna o próximo caractere digitado.
 {
-  char c = 0;
+  unsigned char c = 0;
 
   do{ c = getch(); }while(c == 0);
 
@@ -97,34 +99,35 @@ char GetKey() // retorna o próximo caractere digitado.
 
 // ================================= Player Movimentation =========================================
 
-void Player_Movimentation(char Key) //atira e movimenta a nave para direita ou esquerda de acordo com o caractere recebido como parâmetro.
+void Player_Movimentation(unsigned char Key) //atira e movimenta a nave para direita ou esquerda de acordo com o caractere recebido como parâmetro.
 {
-   switch (Key)
-   {
-      case 97:
-        if (Player.Col > 3)
-        {
-          Clear_Player_Spaceship(); // Limpa a tela no local da nave
-          Player.Col -= 2; // seta a posição da nave 2 colunas para esquerda
-          Print_Player_Spaceship(); // imprime a nave na nova posição
-        }
-        break;
-      case 100:
-        if (Player.Col < 108)
-        {
-          Clear_Player_Spaceship();
-          Player.Col += 2;
-          Print_Player_Spaceship();
-        }
-        break;
-      case 32:
-        if(!Player.Is_Shoting) // o usuário só pode atirar novamente quando não há outro tiro "ativo" na tela
-        {
-          Player.Is_Shoting = true;
-          Player.Shot.Col = Player.Col + 4;
-        }
-        break;
-   }
+
+  if( (Key == 'a' || Key == 97) || (Key == 'A' || Key == 65))
+  {
+    if (Player.Col > 3)
+    {
+      Clear_Player_Spaceship(); // Limpa a tela no local da nave
+      Player.Col -= 2; // seta a posição da nave 2 colunas para esquerda
+      Print_Player_Spaceship(); // imprime a nave na nova posição
+    }
+  }
+  else if( (Key == 'd' || Key == 100) || (Key == 'D' || Key == 68))
+  {
+    if (Player.Col < 108)
+    {
+      Clear_Player_Spaceship();
+      Player.Col += 2;
+      Print_Player_Spaceship();
+    }
+  }
+  else if( Key == ' ' || Key == 32)
+  {
+    if(!Player.Is_Shoting) // o usuário só pode atirar novamente quando não há outro tiro "ativo" na tela
+    {
+      Player.Is_Shoting = true;
+      Player.Shot.Col = Player.Col + 4;
+    }
+  }
 }
 
 // ================================== Player Shot =============================================================
@@ -210,13 +213,30 @@ int GetRandomNumber(int Min, int Max)
   return dice(generator);
 }
 
+//======================================= Get amount of enemies killed ===================================================================
+
+int Get_Amount_of_Enemies_Killed()
+{
+  int DeadEnemies = 0;
+
+  for (int i = 0; i < AmntEnemies; ++i)
+    if(Enemies[i].Is_Alive == false)
+      DeadEnemies++;
+
+  return DeadEnemies;
+}
+
 // ================================== Choose Enemy to Shoot ====================================================
 
 void Choose_Enemy_to_Shoot()
 {
-  int DeadEnemies = 0, Index = 0, ShotCount = 0;
+  int Index = 0, ShotCount = 0;
+  bool StageClean;
 
   do{
+    Sleep(2000);
+    ShotCount = 0;
+    StageClean = Get_Amount_of_Enemies_Killed() == AmntEnemies;
 
     do{
       Index = GetRandomNumber(0, AmntEnemies-1);
@@ -227,21 +247,17 @@ void Choose_Enemy_to_Shoot()
         Enemies[Index].Shot.Col = Enemies[Index].Col + 5;
         ShotCount++;
       }
-    }while(ShotCount <= 2);
+    }while(ShotCount <= 2 && StageClean == false);
 
-    ShotCount = 0;
+  } while (StageClean == false);
 
-    for (int i = 0; i < AmntEnemies; ++i)
-      if(!Enemies[i].Is_Alive)
-        DeadEnemies++;
+  StageisCompleted = true;
 
-    Sleep(4000);
-  } while (DeadEnemies != AmntEnemies);
 }
 
 // ================================== Enemy Shot ==============================================================
 
-void EnemyShot(int i) // realiza a animação dos tiro da nave inimiga
+void EnemyShot(int i) // realiza a animação dos tiros das naves inimigas
 {
 
   if (Enemies[i].Shot.Lin + 1 < FrameLin)
@@ -327,7 +343,7 @@ bool Shot_Hit_Player()  // verifica se o tiro atingiu anlguma nave inimiga
 void Main_Stream()
 {
   bool toRight = true, Ready;
-  char key;
+  unsigned char key = 0;
 
   auto future = std::async(std::launch::async, GetKey);
   auto f = std::async(std::launch::async, Choose_Enemy_to_Shoot);
@@ -382,9 +398,14 @@ void Main_Stream()
       if(Enemies[i].Is_Shoting)
          std::async(std::launch::async, EnemyShot, i);
 
-  }while(key != 27 && Shot_Hit_Player() == false);
+  }while(key != 27 && Shot_Hit_Player() == false && StageisCompleted == false);
 
-  DefeatAnimation();
+  if(StageisCompleted)
+    VictoryAnimation();
+  else if(Shot_Hit_Player)
+    DefeatAnimation();
+  //else
+    //MainMenu();
 
 }
 
@@ -423,7 +444,7 @@ void Clear_Player_Spaceship()
   setcursor(Player.Col, Player.Lin + 3); printf("        ");
 }
 
-// ================================== Defeat Animation ===================================================
+// ================================== Defeat Animation ===========================================
 
 void DefeatAnimation()
 {
@@ -456,6 +477,48 @@ void DefeatAnimation()
     textcolor(15);
     system("PAUSE");
 }
+
+// ================================== Victory Animation ===========================================
+
+void VictoryAnimation()
+{
+  int Lin = 5, Col = 28, Cont = 0;
+  int Colors[] = {3, 13, 9, 14, 7};
+
+  system("clear||cls");
+  PrintFrame();
+
+  for(int i = 0; i<30; i++)
+  {
+    textcolor(Colors[Cont]);
+    setcursor(Col, Lin); printf(" /$$$$$$$$                                                            ");
+    setcursor(Col, Lin + 1); printf("| $$_____/                                                            ");
+    setcursor(Col, Lin + 2); printf("| $$   /$$$$$$  /$$$$$$$ /$$$$$$                                      ");
+    setcursor(Col, Lin + 3); printf("| $$$$|____  $$/$$_____//$$__  $$                                     ");
+    setcursor(Col, Lin + 4); printf("| $$__//$$$$$$|  $$$$$$| $$$$$$$$                                     ");
+    setcursor(Col, Lin + 5); printf("| $$  /$$__  $$\\____  $| $$_____/                                     ");
+    setcursor(Col, Lin + 6); printf("| $$ |  $$$$$$$/$$$$$$$|  $$$$$$$                                     ");
+    setcursor(Col, Lin + 7); printf("|_/$$$$$$_____|_______/ \\_______/    /$$         /$$      /$$         ");
+    setcursor(Col, Lin + 8); printf(" /$$__  $$                          | $$        |__/     | $$         ");
+    setcursor(Col, Lin + 9); printf("| $$  \\__/ /$$$$$$ /$$$$$$$  /$$$$$$| $$/$$   /$$/$$ /$$$$$$$ /$$$$$$ ");
+    setcursor(Col, Lin + 10); printf("| $$      /$$__  $| $$__  $$/$$_____| $| $$  | $| $$/$$__  $$|____  $$");
+    setcursor(Col, Lin + 11); printf("| $$     | $$  \\ $| $$  \\ $| $$     | $| $$  | $| $| $$  | $$ /$$$$$$$");
+    setcursor(Col, Lin + 12); printf("| $$    $| $$  | $| $$  | $| $$     | $| $$  | $| $| $$  | $$/$$__  $$");
+    setcursor(Col, Lin + 13); printf("|  $$$$$$|  $$$$$$| $$  | $|  $$$$$$| $|  $$$$$$| $|  $$$$$$|  $$$$$$$");
+    setcursor(Col, Lin + 14); printf(" \\______/ \\______/|__/  |__/\\_______|__/\\______/|__/\\_______/\\_______/");
+
+
+    Cont++;
+    if (Cont == 4)
+      Cont = 0;
+
+    Sleep(200);
+  }
+    setcursor(40, 30);
+    textcolor(15);
+    system("PAUSE");
+}
+
 // ================================= Main =========================================================
 
 int main()
@@ -483,15 +546,10 @@ int main()
     }
     Enemies[i].Shot.Lin = 14;
   }
-  generator.seed((unsigned int)std::time(0));
+  generator.seed((unsigned int)std::time(0)); //utilizando o valor retornado pela função time(0) para inicializar o gerador de números aleatórios.
   PrintFrame();
   Print_Player_Spaceship();
-  DefeatAnimation();
   Main_Stream();
-
-  system("clear||cls");
-  printf("Fim de Jogo\n");
-  getch();
 
   return 0;
 }
