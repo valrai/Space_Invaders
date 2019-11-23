@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <conio.c>
+#include <conio.h>
 #include <windows.h>
 #include <time.h>
 #include <future>
@@ -12,7 +12,9 @@
 #include <random>
 #include <ctime>
 
-const  unsigned short int EDGE_COLUMN = 120, EDGE_LINE = 37, AMOUNT_ENEMIES = 18; // indica os limites das bordas e a quantidade de naves inimigas
+using namespace std;
+
+const unsigned short int EDGE_COLUMN = 120, EDGE_LINE = 37, AMOUNT_ENEMIES = 18, EDGE_COLOR = 1; // indica os limites e cores da borda e a quantidade de naves inimigas
 
 unsigned char actualStage;
 bool keepSearching;
@@ -42,23 +44,26 @@ typedef struct // criando struct que representará as naves
 
 }Spaceship;
 
-GameStage gameStages[] = 
+GameStage gameStages[] =
 {
   {2, 2000, 50, false},
-  {3, 2000, 40, false},
-  {3, 1500, 35, false},
+  {3, 2000, 45, false},
+  {3, 1500, 40, false},
   {3, 1000, 40, false},
+  {3, 1000, 35, false},
   {3, 1000, 30, false},
-  {3, 1000, 20, false},
-  {3,  500, 20, false}
+  {3,  800, 30, false}
 };
 
+text_info vActual = {0, 0, 79, 24, WHITE, WHITE, C80, 25, 80, 1, 1};
 Spaceship Player; // criando a nave do jogador
 Spaceship Enemies[AMOUNT_ENEMIES]; // criando um array de naves inimigas
-std::mt19937 generator; //instanciando gerador de números aleatórios
+mt19937 generator; //instanciando gerador de números aleatórios
 
 void SetCursor(unsigned short int x,unsigned short int y);
 unsigned char GetKeyPressed();
+void SetTextColor(int ForgC);
+void SetBackgroundColor(int newColor);
 int GetRandomNumber(int Min, int Max);
 void StageCompletedAnimation();
 void VictoryAnimation();
@@ -71,7 +76,7 @@ void ChooseEnemytoShoot(unsigned char stageIndex);
 void EnemyExplosion(unsigned char i);
 void ShotHitEnemy();
 void PlayerShot();
-void PlayerMovimentation(unsigned char key);
+void PlayerMovimentation(char key);
 void ClearPlayerSpaceship();
 void PrintPlayerSpaceship();
 void ClearEnemy();
@@ -89,13 +94,55 @@ void SetCursor(unsigned short int x, unsigned short int y) // posiciona o cursor
   SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),(COORD){x,y});
 }
 
+// ===================================== Set Background Color ==========================================
+
+void SetBackgroundColor(int newColor)
+{
+   CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+   GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+      (csbi.wAttributes & 0x0f) | (newColor << 4));
+   vActual.attribute = (csbi.wAttributes & 0x0f) | (newColor << 4);
+}
+
+// ===================================== Set Text Color ==========================================
+
+void SetTextColor(int ForgC)
+ {
+  WORD wColor;
+
+    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+                        //We use csbi for the wAttributes word.
+  if(GetConsoleScreenBufferInfo(hStdOut, &csbi))
+  {
+                  //Mask out all but the background attribute, and add in the forgournd color
+        wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
+        SetConsoleTextAttribute(hStdOut, wColor);
+  }
+  return;
+}
+
+// ===================================== Hide the console cursor ==========================================
+
+void HideCursor()
+{
+  HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+  CONSOLE_CURSOR_INFO info;
+  info.dwSize = 100;
+  info.bVisible = FALSE;
+  SetConsoleCursorInfo(consoleHandle, &info);
+}
+
 // ================================== Get key =========================================================
 
 unsigned char GetKeyPressed() // retorna o próximo caractere digitado.
 {
   unsigned char key = 0;
 
-  do{ c = getch(); }while(c == 0 && keepSearching);
+  do{ key = getch(); }while(key == 0);
 
   return key;
 }
@@ -104,7 +151,7 @@ unsigned char GetKeyPressed() // retorna o próximo caractere digitado.
 
 int GetRandomNumber(int Min, int Max)
 {
-  std::uniform_int_distribution<uint32_t> dice(Min, Max);
+  uniform_int_distribution<uint32_t> dice(Min, Max);
   return dice(generator);
 }
 
@@ -113,7 +160,10 @@ int GetRandomNumber(int Min, int Max)
 void StageCompletedAnimation()
 {
   unsigned short int lin = 5, col = 28, cont = 0;
-  unsigned char colors[] = {3, 13, 9, 14, 7};
+  unsigned char colors[5];
+
+  for (unsigned char i = 0; i < 5; i++)
+    colors[i] = GetRandomNumber(1, 15);  
 
   system("clear||cls");
   PrintFrame();
@@ -123,7 +173,7 @@ void StageCompletedAnimation()
     case 1:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                                $$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$$$ |");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        \\_$$ |");
@@ -151,7 +201,7 @@ void StageCompletedAnimation()
     case 2:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                               $$$$$$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$  __$$\\");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        \\__/  $$ |");
@@ -174,12 +224,13 @@ void StageCompletedAnimation()
           cont = 0;
 
         Sleep(200);
+
       }
       break;
     case 3:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                               $$$$$$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$ ___$$\\");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        \\_/   $$ |");
@@ -207,7 +258,7 @@ void StageCompletedAnimation()
     case 4:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                              $$\\   $$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$ |  $$ |");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        $$ |  $$ |");
@@ -235,7 +286,7 @@ void StageCompletedAnimation()
     case 5:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                              $$$$$$$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$  ____|");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        $$ |");
@@ -263,7 +314,7 @@ void StageCompletedAnimation()
     case 6:
       for(unsigned char i = 0; i < 15; i++)
       {
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("$$$$$$$$\\                               $$$$$$\\");
         SetCursor(col, lin + 1); printf("$$  _____|                             $$  __$$\\");
         SetCursor(col, lin + 2); printf("$$ |  $$$$$$\\  $$$$$$$\\ $$$$$$\\        $$ /  \\__|");
@@ -290,7 +341,7 @@ void StageCompletedAnimation()
       break;
   }
 
-  SetCursor(40, 30); textcolor(15);
+  SetCursor(40, 30); SetTextColor(15);
   system("PAUSE");
 }
 
@@ -298,7 +349,7 @@ void StageCompletedAnimation()
 
 void VictoryAnimation()
 {
-  unsigned short int lin = 5, col = 33, cont = 0;
+  unsigned short int lin = 5, col = 30, cont = 0;
   unsigned char colors[] = {3, 14, 6, 11, 9};
 
   system("clear||cls");
@@ -306,7 +357,7 @@ void VictoryAnimation()
 
   for(unsigned char i = 0; i < 15; i++)
   {
-    textcolor(colors[cont]);
+    SetTextColor(colors[cont]);
     SetCursor(col, lin); printf("                                       $\\");
     SetCursor(col, lin + 1); printf("                                      $$$\\");
     SetCursor(col, lin + 2); printf("                                     $$ $$\\");
@@ -331,7 +382,7 @@ void VictoryAnimation()
 
     Sleep(200);
   }
-  SetCursor(40, 30); textcolor(15);
+  SetCursor(40, 30); SetTextColor(15);
   system("PAUSE");
 }
 
@@ -339,16 +390,16 @@ void VictoryAnimation()
 
 void DefeatAnimation()
 {
-  unsigned short int lin = 5, col = 33;
+  unsigned short int lin = 5, col = 30;
   unsigned char cont = 0;
-  unsigned char colors[] = {5, 12, 11, 6, 3};
+  unsigned char colors[] = {6, 3, 11, 7, 12};
 
   system("clear||cls");
   PrintFrame();
 
   for(unsigned char i = 0; i < 15; i++)
   {
-    textcolor(colors[cont]);
+    SetTextColor(colors[cont]);
     SetCursor(col, lin); printf("                                       $\\");
     SetCursor(col, lin + 1); printf("                                      $$$\\");
     SetCursor(col, lin + 2); printf("                                     $$ $$\\");
@@ -370,12 +421,12 @@ void DefeatAnimation()
     SetCursor(col, lin + 18); printf("\\__|      \\_______\\__|      \\_______|\\_______|\\______/       \\__|");
 
     cont++;
-    if (cont == 4)
+    if (cont == 5)
       cont = 0;
 
     Sleep(200);
   }
-    SetCursor(40, 30); textcolor(15);
+    SetCursor(40, 30); SetTextColor(15);
     system("PAUSE");
 }
 
@@ -383,34 +434,41 @@ void DefeatAnimation()
 
 void PlayerExplosion() // realiza a animação da explosão das naves inimigas
 {
- textcolor(4);
- SetCursor(Player.col, Player.lin - 1); printf("        ");
- SetCursor(Player.col, Player.lin); printf("    ^   ");
- SetCursor(Player.col, Player.lin + 1); printf("  --*-- ");
- SetCursor(Player.col, Player.lin + 2); printf("    v   ");
- SetCursor(Player.col, Player.lin + 3); printf("        ");
+  for (unsigned char i = 0; i < 3; i++)
+  {
+    SetTextColor(14);
+    SetCursor(Player.col, Player.lin - 1); printf("        ");
+    SetCursor(Player.col, Player.lin); printf("    ^   ");
+    SetCursor(Player.col, Player.lin + 1); printf("  --*-- ");
+    SetCursor(Player.col, Player.lin + 2); printf("    v   ");
+    SetCursor(Player.col, Player.lin + 3); printf("        ");
 
- Sleep(80);
- SetCursor(Player.col, Player.lin - 1); printf("        ");
- SetCursor(Player.col, Player.lin); printf("        ");
- SetCursor(Player.col, Player.lin + 1); printf("        ");
- SetCursor(Player.col, Player.lin + 2); printf("        ");
- SetCursor(Player.col, Player.lin + 3); printf("        ");
+    Sleep(80);
+    SetTextColor(0);
+    SetCursor(Player.col, Player.lin - 1); printf("        ");
+    SetCursor(Player.col, Player.lin); printf("        ");
+    SetCursor(Player.col, Player.lin + 1); printf("        ");
+    SetCursor(Player.col, Player.lin + 2); printf("        ");
+    SetCursor(Player.col, Player.lin + 3); printf("        ");
 
- Sleep(80);
- textcolor(12);
- SetCursor(Player.col, Player.lin - 1); printf(" \\  ^  /");
- SetCursor(Player.col, Player.lin); printf("  \\ | / ");
- SetCursor(Player.col, Player.lin + 1); printf(" ---*---");
- SetCursor(Player.col, Player.lin + 2); printf("  / |\\  ");
- SetCursor(Player.col, Player.lin + 3); printf(" /  v \\ ");
+    Sleep(80);
+    SetTextColor(12);
+    SetCursor(Player.col, Player.lin - 1); printf(" \\  ^  /");
+    SetCursor(Player.col, Player.lin); printf("  \\ | / ");
+    SetCursor(Player.col, Player.lin + 1); printf(" ---*---");
+    SetCursor(Player.col, Player.lin + 2); printf("  / |\\  ");
+    SetCursor(Player.col, Player.lin + 3); printf(" /  v \\ ");
 
- Sleep(80);
- SetCursor(Player.col, Player.lin - 1); printf("        ");
- SetCursor(Player.col, Player.lin); printf("        ");
- SetCursor(Player.col, Player.lin + 1); printf("        ");
- SetCursor(Player.col, Player.lin + 2); printf("        ");
- SetCursor(Player.col, Player.lin + 3); printf("        ");
+  }
+
+  Sleep(80);
+  SetTextColor(12);
+  SetCursor(Player.col, Player.lin - 1); printf("         ");
+  SetCursor(Player.col, Player.lin); printf("         ");
+  SetCursor(Player.col, Player.lin + 1); printf("         ");
+  SetCursor(Player.col, Player.lin + 2); printf("         ");
+  SetCursor(Player.col, Player.lin + 3); printf("         ");
+  Sleep(500);
 }
 
 // ================================== Shot Hit the Player ===============================================
@@ -449,7 +507,7 @@ void EnemyShotAnimation() // realiza a animação dos tiros das naves inimigas
           SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin -  1);
           printf(" ");
         }
-        textcolor(13);
+        SetTextColor(4);
         SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin); printf("*");
 
         Enemies[i].Shot.lin++;
@@ -509,7 +567,7 @@ void ChooseEnemytoShoot(unsigned char stageIndex)
 
 void EnemyExplosion(unsigned char i) // realiza a animação da explosão das naves inimigas
 {
-  textcolor(4);
+  SetTextColor(14);
   SetCursor(Enemies[i].col, Enemies[i].lin); printf("   \\ | /  ");
   SetCursor(Enemies[i].col, Enemies[i].lin + 1); printf("  ---*---  ");
   SetCursor(Enemies[i].col, Enemies[i].lin + 2); printf("   / | \\  ");
@@ -520,7 +578,7 @@ void EnemyExplosion(unsigned char i) // realiza a animação da explosão das na
   SetCursor(Enemies[i].col, Enemies[i].lin + 2); printf("         ");
 
   Sleep(60);
-  textcolor(12);
+  SetTextColor(12);
   SetCursor(Enemies[i].col, Enemies[i].lin);printf("     ^  ");
   SetCursor(Enemies[i].col, Enemies[i].lin + 1); printf("   --*--  ");
   SetCursor(Enemies[i].col, Enemies[i].lin + 2); printf("     v  ");
@@ -561,7 +619,7 @@ void PlayerShot() // realiza a animação do tiro da nave do jogador
       SetCursor(Player.Shot.col, Player.Shot.lin +  1);
       printf(" ");
     }
-    textcolor(14);
+    SetTextColor(14);
     SetCursor(Player.Shot.col, Player.Shot.lin); printf("|");
 
     if (Player.Shot.lin == 3)
@@ -578,9 +636,13 @@ void PlayerShot() // realiza a animação do tiro da nave do jogador
 
 // ========================== Player Movimentation =======================================
 
-void PlayerMovimentation(unsigned char key) //atira e movimenta a nave para direita ou esquerda de acordo com o caractere recebido como parâmetro.
+void PlayerMovimentation(char key) //atira e movimenta a nave para direita ou esquerda de acordo com o caractere recebido como parâmetro.
 {
-  if( (key == 'a' || key == 97) || (key == 'A' || key == 65))
+  if(key == 224)
+    key = getch();
+
+
+  if( (key == 'a' || key == 97) || (key == 'A' || key == 65) || key == 75)
   {
     if (Player.col > 3)
     {
@@ -589,7 +651,7 @@ void PlayerMovimentation(unsigned char key) //atira e movimenta a nave para dire
       PrintPlayerSpaceship(); // imprime a nave na nova posição
     }
   }
-  else if( (key == 'd' || key == 100) || (key == 'D' || key == 68))
+  else if( (key == 'd' || key == 100) || (key == 'D' || key == 68) || key == 77)
   {
     if (Player.col < 108)
     {
@@ -606,6 +668,8 @@ void PlayerMovimentation(unsigned char key) //atira e movimenta a nave para dire
       Player.Shot.col = Player.col + 4;
     }
   }
+  else if(key == VK_ESCAPE)
+    MainMenu();
 }
 
 // ======================= Clean Spaceship ============================================
@@ -622,7 +686,7 @@ void ClearPlayerSpaceship()
 
 void PrintPlayerSpaceship()
 {
-  textcolor(10);
+  SetTextColor(10);
   SetCursor(Player.col, Player.lin); printf("   /\\");
   SetCursor(Player.col, Player.lin + 1); printf("  |  |");
   SetCursor(Player.col, Player.lin + 2); printf(" /|/\\|\\");
@@ -645,6 +709,7 @@ void ClearEnemy()
 
 void PrintEnemy()
 {
+  SetTextColor(11);
   for (unsigned char i = 0; i < AMOUNT_ENEMIES; ++i)
     if (Enemies[i].isAlive)
     {
@@ -663,14 +728,14 @@ void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrow
 
   SetCursor(50, whereToClean); printf("  ");
 
-  textcolor(9);
+  SetTextColor(9);
   SetCursor(50, arrow); printf("|>");
-  textcolor(2);
+  SetTextColor(2);
   SetCursor(53,22); printf(" JOGAR");
   SetCursor(53,24); printf(" CONTROLES");
   SetCursor(53,26); printf(" INSTRUCOES");
   SetCursor(53,28); printf(" SAIR");
-  textcolor(3);
+  SetTextColor(3);
   SetCursor(43,34); printf("Produzido por Valdecir Raimundo");
 }
 
@@ -678,7 +743,7 @@ void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrow
 
 void PrintFrame() // Imprime a borda
 {
-  textbackground(1);
+   SetBackgroundColor(EDGE_COLOR);
 
   for(unsigned char i = 0 ; i < EDGE_COLUMN / 3; ++i)
     printf("|_|");
@@ -687,12 +752,12 @@ void PrintFrame() // Imprime a borda
   {
     printf("\n");
     printf("|_|");
-    textbackground(0);
+    SetBackgroundColor(0);
 
     for (int j = 0; j < EDGE_COLUMN - 6; ++j)
       printf(" ");
 
-    textbackground(1);
+    SetBackgroundColor(EDGE_COLOR);
     printf("|_|");
   }
   printf("\n");
@@ -700,7 +765,7 @@ void PrintFrame() // Imprime a borda
   for(unsigned char i = 0 ; i < EDGE_COLUMN / 3; ++i)
     printf("|_|");
 
-  textbackground(0);
+  SetBackgroundColor(0);
 }
 
 // ================================= Inicialize =========================================
@@ -735,15 +800,14 @@ void Inicialize()
 
 // ================================== Main Stream ====================================
 
-void MainStream()
+void MainStream(unsigned char amntStages)
 {
   bool toRight = true, ready;
-  unsigned char key = 0;
 
   keepSearching = true;
 
-  auto future = std::async(std::launch::async, GetKeyPressed);
-  auto f = std::async(std::launch::async, ChooseEnemytoShoot, actualStage);
+  auto future = async(launch::async, GetKeyPressed);
+  auto f = async(launch::async, ChooseEnemytoShoot, actualStage);
 
   system("CLEAR || CLS");
   PrintFrame();
@@ -753,7 +817,6 @@ void MainStream()
   {
     Sleep(gameStages[actualStage].gameSpeed);
     ClearEnemy();
-    textcolor(11);
 
     if (Enemies[AMOUNT_ENEMIES-1].col < 106 && toRight)
     {
@@ -773,13 +836,12 @@ void MainStream()
     }
 
     PrintEnemy();
-    ready = future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+    ready = future.wait_for(chrono::seconds(0)) == future_status::ready;
 
     if (ready)
     {
-      key = future.get();
-      PlayerMovimentation(key);
-      future = std::async(std::launch::async, GetKeyPressed);
+      auto fut = async(launch::async, PlayerMovimentation, future.get());
+      future = async(launch::async, GetKeyPressed);
     }
 
     if (Player.isShoting)
@@ -788,94 +850,7 @@ void MainStream()
       ShotHitEnemy();
     }
 
-  auto ft = std::async(std::launch::async, EnemyShotAnimation);
-  gameStages[actualStage].stageIsCompleted = GetAmountOfDeadEnemies() == AMOUNT_ENEMIES;
-
-  }while(key != VK_ESCAPE && PlayerIsDead() == false && gameStages[actualStage].stageIsCompleted == false);
-
-  keepSearching = false;
-  if(gameStages[actualStage].stageIsCompleted)
-  {
-    if(actualStage < (*(&gameStages + 1) - gameStages))
-    {
-      actualStage++;
-      StageCompletedAnimation();
-      Inicialize();
-      MainStream();
-    }
-    else
-    {
-      VictoryAnimation();
-      MainMenu();
-    }    
-  }
-  else if(Player.isAlive == false)
-  {
-    DefeatAnimation();
-    MainMenu();
-  }
-}
-
-// ============================== Main Menu ==========================================
-
-void MainMenu()
-{
-  unsigned short int lin = 5, col = 22;
-  unsigned char cont = 0, menuIndex = 1, optionsAmount = 4;
-  unsigned char colors[] = {3, 13, 9, 14, 7};
-  unsigned char key = 0;  
-
-  actualStage = 0;
-  keepSearching = true; 
-
-  auto future = std::async(std::launch::async, GetKeyPressed);
-
-  for (unsigned char i = 0; i < (*(&gameStages + 1) - gameStages); ++i)
-    gameStages[i].stageIsCompleted = false;
-
-  system("CLEAR || CLS");
-  PrintFrame();
-  PrintPlayerSpaceship();
-
-  do
-  {
-    Sleep(gameStages[actualStage].gameSpeed);
-    ClearEnemy();
-    textcolor(11);
-
-    if (Enemies[AMOUNT_ENEMIES-1].col < 106 && toRight)
-    {
-      if (Enemies[AMOUNT_ENEMIES-1].col == 105)
-        toRight = false;
-
-      for(unsigned char i = 0; i < AMOUNT_ENEMIES; i++)
-        Enemies[i].col++;
-    }
-    else
-    {
-      if (Enemies[0].col == 5)
-        toRight = true;
-
-      for(unsigned char i = 0; i < AMOUNT_ENEMIES; i++)
-        Enemies[i].col--;
-    }
-
-    PrintEnemy();
-    ready = future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
-
-    if (ready)
-    {
-      auto fut = std::async(std::launch::async, PlayerMovimentation, future.get());
-      future = std::async(std::launch::async, GetKeyPressed);
-    }
-
-    if (Player.isShoting)
-    {
-      PlayerShot();
-      ShotHitEnemy();
-    }
-
-  auto ft = std::async(std::launch::async, EnemyShotAnimation);
+  auto ft = async(launch::async, EnemyShotAnimation);
   gameStages[actualStage].stageIsCompleted = GetAmountOfDeadEnemies() == AMOUNT_ENEMIES;
 
   }while(PlayerIsDead() == false && gameStages[actualStage].stageIsCompleted == false);
@@ -921,11 +896,11 @@ void MainMenu()
   system("CLEAR || CLS");
   Inicialize();
   PrintFrame();
-  PrintMenuOptions(optionsAmount, menuIndex); 
- 
+  PrintMenuOptions(optionsAmount, menuIndex);
+
   do{
     do{
-        textcolor(colors[cont]);
+        SetTextColor(colors[cont]);
         SetCursor(col, lin); printf("     _______..______      ___       ______  _______       ");
         SetCursor(col, lin + 1); printf("    /       ||   _  \\    /   \\     /      ||   ____|");
         SetCursor(col, lin + 2); printf("   |   (----`|  |_)  |  /  ^  \\   |  ,----'|  |__");
@@ -939,15 +914,17 @@ void MainMenu()
         SetCursor(col, lin + 10); printf("|__| |__| \\__|     \\__/ /__/     \\__\\ |_______/ |_______|| _| `._____|_______/");
         Sleep(200);
 
-      cont++;
-      if (cont == (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
-        cont = 0;
+        cont++;
+        if (cont ==  (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
+          cont = 0;;
 
     }while (!kbhit());
 
     key = getch();
+    if(key == 224)
+      key = getch();
 
-    if (key == 'w' || key == 'W')
+    if (key == 'w' || key == 'W' || key == 72)
     {
       if(menuIndex == 1 )
       {
@@ -960,24 +937,12 @@ void MainMenu()
         PrintMenuOptions(menuIndex + 1, menuIndex);
       }
     }
-    else if (key == 's' || key == 'S' )
+    else if (key == 's' || key == 'S' || key == 80)
     {
       if(menuIndex == optionsAmount )
       {
-        switch (menuIndex)
-        {
-          case 1:
-            MainStream();
-            break;
-          case 2:
-            break;
-          case 3:
-            break;
-          case 4:
-            Player.isAlive = false;
-            key = VK_ESCAPE;
-            break;
-        }
+        menuIndex = 1;
+        PrintMenuOptions(optionsAmount, menuIndex);
       }
       else
       {
@@ -997,16 +962,18 @@ void MainMenu()
         case 3:
           break;
         case 4:
-          system("clear||cls");
-          SetCursor(50, 15); printf("Obrigado por jogar !!!");
-          SetCursor(40, 17); printf("Precione qualquer tecla para continuar ...");
-          textcolor(0);
-          exit(0);
-          break;
+          key = VK_ESCAPE;
       }
     }
 
   }while(key != VK_ESCAPE);
+
+  system("clear||cls");
+  SetTextColor(9);
+  SetCursor(50, 15); printf("Obrigado por jogar !!!");
+  SetCursor(40, 17); printf("Precione qualquer tecla para sair ...");
+  SetTextColor(0);
+  exit(0);
 }
 
 // ============================== Main ==========================================
@@ -1014,8 +981,8 @@ void MainMenu()
 int main()
 {
   system("MODE con cols=138 lines=38"); // define o tamanho do terminal
-  _setcursortype(_NOCURSOR); // deixa o cursor invisível
-  generator.seed((unsigned int)std::time(0)); //utilizando o valor retornado pela função time(0) para inicializar o gerador de números aleatórios.
+  HideCursor(); // deixa o cursor invisível
+  generator.seed((unsigned int)time(0)); //utilizando o valor retornado pela função time(0) para inicializar o gerador de números aleatórios.
 
   MainMenu();
 
