@@ -42,15 +42,15 @@ typedef struct // criando struct que representará as naves
 
 }Spaceship;
 
-GameStage gameStages[] =
+GameStage gameStages[] = 
 {
   {2, 2000, 50, false},
-  {3, 2000, 45, false},
-  {3, 1500, 40, false},
+  {3, 2000, 40, false},
+  {3, 1500, 35, false},
   {3, 1000, 40, false},
-  {3, 1000, 35, false},
   {3, 1000, 30, false},
-  {3,  800, 30, false}
+  {3, 1000, 20, false},
+  {3,  500, 20, false}
 };
 
 Spaceship Player; // criando a nave do jogador
@@ -95,7 +95,7 @@ unsigned char GetKeyPressed() // retorna o próximo caractere digitado.
 {
   unsigned char key = 0;
 
-  do{ key = getch(); }while(key == 0 && keepSearching);
+  do{ c = getch(); }while(c == 0 && keepSearching);
 
   return key;
 }
@@ -174,7 +174,6 @@ void StageCompletedAnimation()
           cont = 0;
 
         Sleep(200);
-
       }
       break;
     case 3:
@@ -299,7 +298,7 @@ void StageCompletedAnimation()
 
 void VictoryAnimation()
 {
-  unsigned short int lin = 5, col = 30, cont = 0;
+  unsigned short int lin = 5, col = 33, cont = 0;
   unsigned char colors[] = {3, 14, 6, 11, 9};
 
   system("clear||cls");
@@ -340,7 +339,7 @@ void VictoryAnimation()
 
 void DefeatAnimation()
 {
-  unsigned short int lin = 5, col = 30;
+  unsigned short int lin = 5, col = 33;
   unsigned char cont = 0;
   unsigned char colors[] = {5, 12, 11, 6, 3};
 
@@ -736,15 +735,103 @@ void Inicialize()
 
 // ================================== Main Stream ====================================
 
-void MainStream(unsigned char amntStages)
+void MainStream()
 {
-
   bool toRight = true, ready;
+  unsigned char key = 0;
 
   keepSearching = true;
 
   auto future = std::async(std::launch::async, GetKeyPressed);
   auto f = std::async(std::launch::async, ChooseEnemytoShoot, actualStage);
+
+  system("CLEAR || CLS");
+  PrintFrame();
+  PrintPlayerSpaceship();
+
+  do
+  {
+    Sleep(gameStages[actualStage].gameSpeed);
+    ClearEnemy();
+    textcolor(11);
+
+    if (Enemies[AMOUNT_ENEMIES-1].col < 106 && toRight)
+    {
+      if (Enemies[AMOUNT_ENEMIES-1].col == 105)
+        toRight = false;
+
+      for(unsigned char i = 0; i < AMOUNT_ENEMIES; i++)
+        Enemies[i].col++;
+    }
+    else
+    {
+      if (Enemies[0].col == 5)
+        toRight = true;
+
+      for(unsigned char i = 0; i < AMOUNT_ENEMIES; i++)
+        Enemies[i].col--;
+    }
+
+    PrintEnemy();
+    ready = future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+
+    if (ready)
+    {
+      key = future.get();
+      PlayerMovimentation(key);
+      future = std::async(std::launch::async, GetKeyPressed);
+    }
+
+    if (Player.isShoting)
+    {
+      PlayerShot();
+      ShotHitEnemy();
+    }
+
+  auto ft = std::async(std::launch::async, EnemyShotAnimation);
+  gameStages[actualStage].stageIsCompleted = GetAmountOfDeadEnemies() == AMOUNT_ENEMIES;
+
+  }while(key != VK_ESCAPE && PlayerIsDead() == false && gameStages[actualStage].stageIsCompleted == false);
+
+  keepSearching = false;
+  if(gameStages[actualStage].stageIsCompleted)
+  {
+    if(actualStage < (*(&gameStages + 1) - gameStages))
+    {
+      actualStage++;
+      StageCompletedAnimation();
+      Inicialize();
+      MainStream();
+    }
+    else
+    {
+      VictoryAnimation();
+      MainMenu();
+    }    
+  }
+  else if(Player.isAlive == false)
+  {
+    DefeatAnimation();
+    MainMenu();
+  }
+}
+
+// ============================== Main Menu ==========================================
+
+void MainMenu()
+{
+  unsigned short int lin = 5, col = 22;
+  unsigned char cont = 0, menuIndex = 1, optionsAmount = 4;
+  unsigned char colors[] = {3, 13, 9, 14, 7};
+  unsigned char key = 0;  
+
+  actualStage = 0;
+  keepSearching = true; 
+
+  auto future = std::async(std::launch::async, GetKeyPressed);
+
+  for (unsigned char i = 0; i < (*(&gameStages + 1) - gameStages); ++i)
+    gameStages[i].stageIsCompleted = false;
 
   system("CLEAR || CLS");
   PrintFrame();
@@ -834,8 +921,8 @@ void MainMenu()
   system("CLEAR || CLS");
   Inicialize();
   PrintFrame();
-  PrintMenuOptions(optionsAmount, menuIndex);
-
+  PrintMenuOptions(optionsAmount, menuIndex); 
+ 
   do{
     do{
         textcolor(colors[cont]);
@@ -852,9 +939,9 @@ void MainMenu()
         SetCursor(col, lin + 10); printf("|__| |__| \\__|     \\__/ /__/     \\__\\ |_______/ |_______|| _| `._____|_______/");
         Sleep(200);
 
-        cont++;
-        if (cont ==  (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
-          cont = 0;;
+      cont++;
+      if (cont == (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
+        cont = 0;
 
     }while (!kbhit());
 
@@ -877,8 +964,20 @@ void MainMenu()
     {
       if(menuIndex == optionsAmount )
       {
-        menuIndex = 1;
-        PrintMenuOptions(optionsAmount, menuIndex);
+        switch (menuIndex)
+        {
+          case 1:
+            MainStream();
+            break;
+          case 2:
+            break;
+          case 3:
+            break;
+          case 4:
+            Player.isAlive = false;
+            key = VK_ESCAPE;
+            break;
+        }
       }
       else
       {
