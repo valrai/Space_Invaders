@@ -10,21 +10,25 @@
 #include <chrono>
 #include <string>
 #include <random>
-#include <ctime>
+#include <time.h>
 
 using namespace std;
+using namespace chrono;
 
 const unsigned short int EDGE_COLUMN = 120, EDGE_LINE = 37, AMOUNT_ENEMIES = 18, EDGE_COLOR = 1; // indica os limites e cores da borda e a quantidade de naves inimigas
 
 unsigned char actualStage;
 bool keepSearching;
 
+typedef high_resolution_clock Clock;
+
 typedef struct // criando struct que representará as fases do jogo
 {
   unsigned char maxAmntShots;
   unsigned short int shotsFrequency;
   unsigned char gameSpeed;
-  bool stageIsCompleted = false;
+  bool isCompleted;
+  int64_t duration;
 
 }GameStage;
 
@@ -99,12 +103,12 @@ void SetCursor(unsigned short int x, unsigned short int y) // posiciona o cursor
 
 void SetBackgroundColor(int newColor)
 {
-   CONSOLE_SCREEN_BUFFER_INFO csbi;
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-   GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-      (csbi.wAttributes & 0x0f) | (newColor << 4));
-   vActual.attribute = (csbi.wAttributes & 0x0f) | (newColor << 4);
+  GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+    (csbi.wAttributes & 0x0f) | (newColor << 4));
+  vActual.attribute = (csbi.wAttributes & 0x0f) | (newColor << 4);
 }
 
 // ===================================== Set Text Color ==========================================
@@ -112,16 +116,13 @@ void SetBackgroundColor(int newColor)
 void SetTextColor(int ForgC)
  {
   WORD wColor;
+  HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-                        //We use csbi for the wAttributes word.
   if(GetConsoleScreenBufferInfo(hStdOut, &csbi))
   {
-                  //Mask out all but the background attribute, and add in the forgournd color
-        wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
-        SetConsoleTextAttribute(hStdOut, wColor);
+    wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
+    SetConsoleTextAttribute(hStdOut, wColor);
   }
   return;
 }
@@ -516,7 +517,7 @@ void EnemyShotAnimation() // realiza a animação dos tiros das naves inimigas
       {
         SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin - 1); printf(" ");
         Enemies[i].isShoting = false;
-        Enemies[i].Shot.lin = 0; 
+        Enemies[i].Shot.lin = 0;
       }
     }
 }
@@ -555,7 +556,7 @@ void ChooseEnemytoShoot(unsigned char stageIndex)
         shotCount++;
       }
 
-      isOver = gameStages[stageIndex].stageIsCompleted || Player.isAlive == false;
+      isOver = gameStages[stageIndex].isCompleted || Player.isAlive == false;
 
     }while(shotCount <= gameStages[actualStage].maxAmntShots - 1 && isOver == false);
 
@@ -783,7 +784,6 @@ void Inicialize()
 void MainStream(unsigned char amntStages)
 {
   bool toRight = true, ready;
-
   keepSearching = true;
 
   auto future = async(launch::async, GetKeyPressed);
@@ -831,12 +831,12 @@ void MainStream(unsigned char amntStages)
     }
 
   auto ft = async(launch::async, EnemyShotAnimation);
-  gameStages[actualStage].stageIsCompleted = GetAmountOfDeadEnemies() == AMOUNT_ENEMIES;
+  gameStages[actualStage].isCompleted = GetAmountOfDeadEnemies() == AMOUNT_ENEMIES;
 
-  }while(PlayerIsDead() == false && gameStages[actualStage].stageIsCompleted == false);
+  }while(PlayerIsDead() == false && gameStages[actualStage].isCompleted == false);
 
   keepSearching = false;
-  if(gameStages[actualStage].stageIsCompleted)
+  if(gameStages[actualStage].isCompleted)
   {
     actualStage++;
 
@@ -1005,7 +1005,7 @@ void MainMenu()
   keepSearching = true;
 
   for (unsigned char i = 0; i < amntStages; ++i)
-    gameStages[i].stageIsCompleted = false;
+    gameStages[i].isCompleted = false;
 
   system("CLEAR || CLS");
   Inicialize();
@@ -1092,8 +1092,8 @@ void MainMenu()
 
   system("clear||cls");
   SetTextColor(9);
-  SetCursor(55, 15); printf("Obrigado por jogar !!!");
-  SetCursor(49, 17); printf("Precione qualquer tecla para sair ...");
+  SetCursor(47, 16); printf("Obrigado por jogar !!!");
+  SetCursor(41, 17); printf("Precione qualquer tecla para sair ...");
   SetTextColor(0);
   exit(0);
 }
@@ -1102,7 +1102,7 @@ void MainMenu()
 
 int main()
 {
-  system("MODE con cols=138 lines=38"); // define o tamanho do terminal
+  system("MODE con cols=120 lines=37"); // define o tamanho do terminal
   HideCursor(); // deixa o cursor invisível
   generator.seed((unsigned int)time(0)); //utilizando o valor retornado pela função time(0) para inicializar o gerador de números aleatórios.
 

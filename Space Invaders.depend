@@ -48,7 +48,7 @@
 	<random>
 	<ctime>
 
-1574538667 source:c:\git\space_invaders\main.cpp
+1574620870 source:c:\git\space_invaders\main.cpp
 	<stdio.h>
 	<stdlib.h>
 	<conio.h>
@@ -60,5 +60,6 @@
 	<chrono>
 	<string>
 	<random>
-	<ctime>
+	<time.h>
+	<string>
 
