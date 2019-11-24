@@ -52,7 +52,7 @@ GameStage gameStages[] =
   {3, 1000, 40, false},
   {3, 1000, 35, false},
   {3, 1000, 30, false},
-  {3,  800, 30, false}
+  {3,  500, 35, false}
 };
 
 text_info vActual = {0, 0, 79, 24, WHITE, WHITE, C80, 25, 80, 1, 1};
@@ -82,9 +82,10 @@ void PrintPlayerSpaceship();
 void ClearEnemy();
 void PrintEnemy();
 void MainStream();
-void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrowIndex);
 void PrintFrame();
 void Inicialize();
+void Controls();
+void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrowIndex);
 void MainMenu();
 
 // ===================================== Set Cursor Position ==========================================
@@ -163,7 +164,7 @@ void StageCompletedAnimation()
   unsigned char colors[5];
 
   for (unsigned char i = 0; i < 5; i++)
-    colors[i] = GetRandomNumber(1, 15);  
+    colors[i] = GetRandomNumber(1, 15);
 
   system("clear||cls");
   PrintFrame();
@@ -719,26 +720,6 @@ void PrintEnemy()
     }
 }
 
-// ========================== Print Menu Options =====================================
-
-void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrowIndex)
-{
-  unsigned short int arrow = arrowIndex * 2 + 20;
-  unsigned short int whereToClean = previousIndex * 2 + 20;
-
-  SetCursor(50, whereToClean); printf("  ");
-
-  SetTextColor(9);
-  SetCursor(50, arrow); printf("|>");
-  SetTextColor(2);
-  SetCursor(53,22); printf(" JOGAR");
-  SetCursor(53,24); printf(" CONTROLES");
-  SetCursor(53,26); printf(" INSTRUCOES");
-  SetCursor(53,28); printf(" SAIR");
-  SetTextColor(3);
-  SetCursor(43,34); printf("Produzido por Valdecir Raimundo");
-}
-
 // ==================================== Print Frame ================================
 
 void PrintFrame() // Imprime a borda
@@ -879,6 +860,140 @@ void MainStream(unsigned char amntStages)
   }
 }
 
+// =============================== Instructions ========================================
+
+void Instructions()
+{
+  unsigned short col = 15, lin = 10;
+  unsigned char cont = 0, colors[] = {2, 10, 9, 3, 7};
+
+  system("CLEAR||CLS");
+  PrintFrame();
+
+  SetTextColor(11);
+  SetCursor(col + 15, lin + 5 ); printf("Utilize as teclas direcionais para controlar a nave aliada");
+  SetCursor(col + 15, lin + 6); printf("e \"espa%co\" para atirar.", 135);
+  SetCursor(col + 15, lin + 7); printf("Desvie dos tiros e destrua todos os inimigos para avan%car",135);
+  SetCursor(col + 15, lin + 8); printf("em sua jornada.");
+
+  SetCursor(40, 31);
+  SetTextColor(15);
+  printf("Precione qualquer tecla para sair ...");
+
+  do{
+      SetTextColor(colors[cont]);
+      SetCursor(col + 15, lin - 7); printf("    ____              __                       _  _");
+      SetCursor(col + 15, lin - 6); printf("   /  _/____   _____ / /_ _____ __  __ _____ _//\\//  ___   _____");
+      SetCursor(col + 15, lin - 5); printf("   / / / __ \\ / ___// __// ___// / / // ___// __ \\ / _ \\ / ___/");
+      SetCursor(col + 15, lin - 4); printf(" _/ / / / / /(__  )/ /_ / /   / /_/ // /__ / /_/ //  __/(__  )");
+      SetCursor(col + 15, lin - 3); printf("/___//_/ /_//____/ \\__//_/    \\__,_/ \\___/ \\____/ \\___//____/");
+      SetCursor(col + 15, lin - 2); printf("                                     /_)");
+      Sleep(300);
+
+      cont++;
+      if (cont ==  (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
+        cont = 0;;
+
+  }while (!kbhit());
+  getch();
+}
+
+// ================================= Controls =========================================
+
+void Controls()
+{
+  unsigned short col = 15, lin = 10;
+  unsigned char cont = 0, colors[] = {3, 13, 9, 12, 6};
+
+  system("CLEAR||CLS");
+  PrintFrame();
+
+  SetTextColor(7);
+  SetCursor(col, lin); printf("       ____ ");
+  SetCursor(col, lin + 1); printf("      ||w ||");
+  SetCursor(col, lin + 2); printf("      ||__||      ");
+  SetCursor(col, lin + 3); printf(" ____ |/__\\| ____ ");
+  SetCursor(col, lin + 4); printf("||a ||||s ||||d ||");
+  SetCursor(col, lin + 5); printf("||__||||__||||__||");
+  SetCursor(col, lin + 6); printf("|/__\\||/__\\||/__\\|");
+
+  SetCursor(col + 70, lin); printf("       ____ ");
+  SetCursor(col + 70, lin + 1); printf("      ||^ ||");
+  SetCursor(col + 70, lin + 2); printf("      ||__||      ");
+  SetCursor(col + 70, lin + 3); printf(" ____ |/__\\| ____ ");
+  SetCursor(col + 70, lin + 4); printf("||< ||||v ||||> ||");
+  SetCursor(col + 70, lin + 5); printf("||__||||__||||__||");
+  SetCursor(col + 70, lin + 6); printf("|/__\\||/__\\||/__\\|");
+
+  SetCursor(col + 35, lin + 8); printf(" _________________ ");
+  SetCursor(col + 35, lin + 9); printf("||   __________  ||");
+  SetCursor(col + 35, lin + 10); printf("||_______________||");
+  SetCursor(col + 35, lin + 11); printf("|/_______________\\|");
+
+  SetTextColor(14);
+  //SetCursor(col + 22, lin + 12); printf("ATIRAR");
+  SetCursor(col + 22, lin + 5); printf("<---------- DIREITA");
+  SetCursor(col + 48, lin + 5); printf("ESQUERDA -------->");
+
+  SetCursor(col + 44, lin + 13); printf("^");
+  SetCursor(col + 44, lin + 14); printf("|");
+  SetCursor(col + 41, lin + 16); printf("ATIRAR");
+
+  SetCursor(col + 3, lin + 11); printf("_ ESQUERDA");
+  SetCursor(col + 2, lin + 8); printf("^");
+  for (unsigned char i = 0; i < 3; i++)
+  {
+    SetCursor(col + 2, lin + 9 + i); printf("|");
+  }
+
+  SetCursor(col + 76, lin + 11); printf("DIREITA _");
+  SetCursor(col + 85, lin + 8); printf("^");
+  for (unsigned char i = 0; i < 3; i++)
+  {
+    SetCursor(col + 85, lin + 9 + i); printf("|");
+  }
+
+  SetCursor(40, 31);
+  SetTextColor(15);
+  printf("Precione qualquer tecla para sair ...");
+
+  do{
+      SetTextColor(colors[cont]);
+      SetCursor(col + 18, lin - 7); printf("   ______               __                __");
+      SetCursor(col + 18, lin - 6); printf("  / ____/____   ____   / /_ _____ ____   / /___   _____");
+      SetCursor(col + 18, lin - 5); printf(" / /    / __ \\ / __ \\ / __// ___// __ \\ / // _ \\ / ___/");
+      SetCursor(col + 18, lin - 4); printf("/ /___ / /_/ // / / // /_ / /   / /_/ // //  __/(__  ) ");
+      SetCursor(col + 18, lin - 3); printf("\\____/ \\____//_/ /_/ \\__//_/    \\____//_/ \\___//____/");
+      Sleep(300);
+
+      cont++;
+      if (cont ==  (*(&colors + 1) - colors)) //caso o vetor de core tenha sido inteiramente percorrido, o indice volta ao começo
+        cont = 0;;
+
+  }while (!kbhit());
+  getch();
+}
+
+// ========================== Print Menu Options =====================================
+
+void PrintMenuOptions(unsigned short int previousIndex, unsigned short int arrowIndex)
+{
+  unsigned short int arrow = arrowIndex * 2 + 20;
+  unsigned short int whereToClean = previousIndex * 2 + 20;
+
+  SetCursor(50, whereToClean); printf("  ");
+
+  SetTextColor(9);
+  SetCursor(50, arrow); printf("|>");
+  SetTextColor(2);
+  SetCursor(53,22); printf(" JOGAR");
+  SetCursor(53,24); printf(" CONTROLES");
+  SetCursor(53,26); printf(" INSTRU%c%cES", 128, 229);
+  SetCursor(53,28); printf(" SAIR");
+  SetTextColor(3);
+  SetCursor(43,34); printf("Produzido por Valdecir Raimundo");
+}
+
 // ============================== Main Menu ==========================================
 
 void MainMenu()
@@ -887,7 +1002,7 @@ void MainMenu()
   unsigned char cont = 0, menuIndex = 1, optionsAmount = 4, key = 0, amntStages = (*(&gameStages + 1) - gameStages);
   unsigned char colors[] = {3, 13, 9, 14, 7};
 
-  actualStage = 0;
+  actualStage = 6;
   keepSearching = true;
 
   for (unsigned char i = 0; i < amntStages; ++i)
@@ -958,8 +1073,16 @@ void MainMenu()
           MainStream(amntStages);
           break;
         case 2:
+          Controls();
+          system("CLEAR || CLS");
+          PrintFrame();
+          PrintMenuOptions(optionsAmount, menuIndex);
           break;
         case 3:
+          Instructions();
+          system("CLEAR || CLS");
+          PrintFrame();
+          PrintMenuOptions(optionsAmount, menuIndex);
           break;
         case 4:
           key = VK_ESCAPE;
@@ -970,8 +1093,8 @@ void MainMenu()
 
   system("clear||cls");
   SetTextColor(9);
-  SetCursor(50, 15); printf("Obrigado por jogar !!!");
-  SetCursor(40, 17); printf("Precione qualquer tecla para sair ...");
+  SetCursor(55, 15); printf("Obrigado por jogar !!!");
+  SetCursor(49, 17); printf("Precione qualquer tecla para sair ...");
   SetTextColor(0);
   exit(0);
 }
