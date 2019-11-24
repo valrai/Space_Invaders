@@ -24,7 +24,7 @@ typedef struct // criando struct que representará as fases do jogo
   unsigned char maxAmntShots;
   unsigned short int shotsFrequency;
   unsigned char gameSpeed;
-  bool stageIsCompleted;
+  bool stageIsCompleted = false;
 
 }GameStage;
 
@@ -46,13 +46,13 @@ typedef struct // criando struct que representará as naves
 
 GameStage gameStages[] =
 {
-  {2, 2000, 50, false},
-  {3, 2000, 45, false},
-  {3, 1500, 40, false},
-  {3, 1000, 40, false},
-  {3, 1000, 35, false},
-  {3, 1000, 30, false},
-  {3,  500, 35, false}
+  {2, 2000, 50},
+  {3, 2000, 45},
+  {3, 1500, 40},
+  {3, 1000, 40},
+  {3, 1000, 35},
+  {3, 1000, 30},
+  {3,  500, 35}
 };
 
 text_info vActual = {0, 0, 79, 24, WHITE, WHITE, C80, 25, 80, 1, 1};
@@ -501,23 +501,22 @@ void EnemyShotAnimation() // realiza a animação dos tiros das naves inimigas
   for (unsigned char i = 0; i < AMOUNT_ENEMIES; ++i)
     if(Enemies[i].isShoting)
     {
+      if(Enemies[i].Shot.lin == 0)
+        Enemies[i].Shot.lin = Enemies[i].lin + 4;
+
       if (Enemies[i].Shot.lin + 1 < EDGE_LINE)
       {
-        if(Enemies[i].Shot.lin > 14)
-        {
-          SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin -  1);
-          printf(" ");
-        }
+        SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin -  1);
+        printf(" ");
         SetTextColor(4);
         SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin); printf("*");
-
         Enemies[i].Shot.lin++;
       }
       else
       {
         SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin - 1); printf(" ");
-        Enemies[i].Shot.lin = 14;
         Enemies[i].isShoting = false;
+        Enemies[i].Shot.lin = 0; 
       }
     }
 }
@@ -773,9 +772,9 @@ void Inicialize()
       Enemies[i].lin = Enemies[i-6].lin + 4;
       Enemies[i].col = Enemies[i-6].col;
     }
-    Enemies[i].Shot.lin = 14;
     Enemies[i].isShoting = false;
     Enemies[i].isAlive = true;
+    Enemies[i].Shot.lin = 0;
   }
 }
 
@@ -1002,7 +1001,7 @@ void MainMenu()
   unsigned char cont = 0, menuIndex = 1, optionsAmount = 4, key = 0, amntStages = (*(&gameStages + 1) - gameStages);
   unsigned char colors[] = {3, 13, 9, 14, 7};
 
-  actualStage = 6;
+  actualStage = 0;
   keepSearching = true;
 
   for (unsigned char i = 0; i < amntStages; ++i)
@@ -1065,7 +1064,7 @@ void MainMenu()
         PrintMenuOptions(menuIndex - 1, menuIndex);
       }
     }
-    else if(key == 13)
+    else if(key == 13 || ((key == 'd' || key == 100) || (key == 'D' || key == 68) || key == 77))
     {
       switch (menuIndex)
       {
