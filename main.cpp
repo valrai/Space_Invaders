@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <windows.h>
-#include <time.h>
 #include <future>
 #include <iostream>
 #include <thread>
@@ -18,7 +17,6 @@ using namespace chrono;
 const unsigned short int EDGE_COLUMN = 120, EDGE_LINE = 37, AMOUNT_ENEMIES = 18, EDGE_COLOR = 1; // indica os limites e cores da borda e a quantidade de naves inimigas
 
 unsigned char actualStage;
-bool keepSearching;
 
 typedef high_resolution_clock Clock;
 
@@ -28,8 +26,6 @@ typedef struct // criando struct que representará as fases do jogo
   unsigned short int shotsFrequency;
   unsigned char gameSpeed;
   bool isCompleted;
-  int64_t duration;
-
 }GameStage;
 
 typedef struct // criando struct que representará as naves
@@ -42,10 +38,8 @@ typedef struct // criando struct que representará as naves
   struct Shot
   {
     unsigned short int col;
-    unsigned short int lin;
-
+    unsigned short int lin;    
   }Shot;
-
 }Spaceship;
 
 GameStage gameStages[] =
@@ -59,10 +53,10 @@ GameStage gameStages[] =
   {3,  500, 35}
 };
 
-text_info vActual = {0, 0, 79, 24, WHITE, WHITE, C80, 25, 80, 1, 1};
 Spaceship Player; // criando a nave do jogador
 Spaceship Enemies[AMOUNT_ENEMIES]; // criando um array de naves inimigas
 mt19937 generator; //instanciando gerador de números aleatórios
+text_info vActual = {0, 0, 79, 24, WHITE, WHITE, C80, 25, 80, 1, 1};
 
 void SetCursor(unsigned short int x,unsigned short int y);
 unsigned char GetKeyPressed();
@@ -483,7 +477,6 @@ bool PlayerIsDead()  // verifica se o jogador perdeu
       for (int j = 0; j < 8; ++j) // percorre todas as 10 colunas que constituem a nave inimiga
         if (Enemies[i].Shot.col == (Player.col + j)) // e estiver na mesma coluna que a nave inimiga (que deve estar "viva")...
         {
-
           SetCursor(Enemies[i].Shot.col, Enemies[i].Shot.lin + 1);printf(" "); // remove da tela o tiro
           PlayerExplosion(); // executa a animação de explosão
           Player.Shot.lin = Player.lin - 1;
@@ -784,7 +777,6 @@ void Inicialize()
 void MainStream(unsigned char amntStages)
 {
   bool toRight = true, ready;
-  keepSearching = true;
 
   auto future = async(launch::async, GetKeyPressed);
   auto f = async(launch::async, ChooseEnemytoShoot, actualStage);
@@ -835,7 +827,6 @@ void MainStream(unsigned char amntStages)
 
   }while(PlayerIsDead() == false && gameStages[actualStage].isCompleted == false);
 
-  keepSearching = false;
   if(gameStages[actualStage].isCompleted)
   {
     actualStage++;
@@ -1002,7 +993,6 @@ void MainMenu()
   unsigned char colors[] = {3, 13, 9, 14, 7};
 
   actualStage = 0;
-  keepSearching = true;
 
   for (unsigned char i = 0; i < amntStages; ++i)
     gameStages[i].isCompleted = false;
